@@ -28,6 +28,7 @@ from providers.claude import ClaudeAdapter
 from providers.codex import CodexAdapter
 from providers.grok import GrokAdapter
 from providers.gemini import GeminiAdapter
+from providers.ollama import OllamaAdapter
 
 
 # Provider registry
@@ -36,6 +37,7 @@ PROVIDERS = {
     "codex": CodexAdapter,
     "grok": GrokAdapter,
     "gemini": GeminiAdapter,
+    "ollama": OllamaAdapter,
 }
 
 
