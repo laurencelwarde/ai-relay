@@ -69,6 +69,43 @@ def cmd_status(args):
     """Show status of all providers and current session."""
     db = get_db()
 
+    providers = list_providers()
+    quotas = {q.provider: q for q in db.list_quotas()}
+    session = db.get_active_session()
+    stats = db.get_stats()
+
+    # JSON output for VS Code extension
+    if hasattr(args, 'json') and args.json:
+        output = {
+            "providers": [],
+            "session": None,
+            "stats": stats
+        }
+
+        for name, info in providers.items():
+            quota = quotas.get(name)
+            output["providers"].append({
+                "name": name,
+                "displayName": info['display_name'],
+                "installed": info['installed'],
+                "status": info['status'],
+                "used": quota.used_today if quota else 0,
+                "limit": quota.daily_limit if quota else None,
+                "enabled": True  # Default enabled
+            })
+
+        if session:
+            output["session"] = {
+                "id": session.id,
+                "provider": session.last_provider,
+                "created": session.created_at,
+                "tokens": session.total_tokens_used
+            }
+
+        print(json.dumps(output))
+        return 0
+
+    # Human-readable output
     print("\n" + "=" * 50)
     print("  AI-Relay Status")
     print("=" * 50)
@@ -76,12 +113,8 @@ def cmd_status(args):
     # Provider status
     print("\n📡 Providers:\n")
 
-    providers = list_providers()
-    quotas = {q.provider: q for q in db.list_quotas()}
-
     for name, info in sorted(providers.items(), key=lambda x: x[1]['priority']):
         status_icon = "✓" if info['installed'] else "✗"
-        status_color = "green" if info['status'] == "available" else "yellow" if info['status'] == "not_installed" else "red"
 
         quota = quotas.get(name)
         if quota and quota.daily_limit:
@@ -96,7 +129,6 @@ def cmd_status(args):
 
     # Current session
     print("\n📋 Session:\n")
-    session = db.get_active_session()
     if session:
         age = datetime.now(timezone.utc) - datetime.fromisoformat(session.created_at)
         hours = age.total_seconds() / 3600
@@ -114,13 +146,14 @@ def cmd_status(args):
         print("  No active session")
 
     # Stats
-    stats = db.get_stats()
     print("\n📊 Statistics:\n")
     print(f"  Total sessions:  {stats['total_sessions']}")
     print(f"  Total handoffs:  {stats['total_handoffs']}")
     print(f"  Total tokens:    {stats['total_tokens']:,}")
 
     print("\n" + "=" * 50 + "\n")
+
+    return 0
 
 
 def cmd_capture(args):
@@ -588,6 +621,7 @@ def main():
 
     # status
     p_status = subparsers.add_parser("status", help="Show status of providers and session")
+    p_status.add_argument("--json", action="store_true", help="Output as JSON for VS Code extension")
 
     # capture
     p_capture = subparsers.add_parser("capture", help="Capture context from a provider")

@@ -1,0 +1,175 @@
+{
+  "name": "ai-relay",
+  "displayName": "AI-Relay - Cross-Provider Context Continuity",
+  "description": "Seamlessly hand off AI coding sessions between Claude, Codex, Grok, Gemini, and Ollama when quotas run out.",
+  "version": "0.1.0",
+  "publisher": "laurence73",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "context",
+    "handoff",
+    "claude",
+    "codex",
+    "grok",
+    "gemini",
+    "ollama",
+    "relay"
+  ],
+  "activationEvents": [
+    "onView:ai-relay.sidebar"
+  ],
+  "main": "./out/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laurence73/ai-relay"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-relay.status",
+        "title": "AI-Relay: Show Status",
+        "icon": "$(info)"
+      },
+      {
+        "command": "ai-relay.capture",
+        "title": "AI-Relay: Capture Context",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "ai-relay.handoff",
+        "title": "AI-Relay: Handoff to Another Provider",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "ai-relay.start",
+        "title": "AI-Relay: Start New Session",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ai-relay.continue",
+        "title": "AI-Relay: Continue Session",
+        "icon": "$(debug-continue)"
+      },
+      {
+        "command": "ai-relay.refresh",
+        "title": "AI-Relay: Refresh Status",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ai-relay.refresh",
+          "when": "view == ai-relay.sidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI-Relay",
+      "properties": {
+        "ai-relay.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "scope": "machine",
+          "description": "Path to Python executable"
+        },
+        "ai-relay.scriptPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Path to ai_relay.py script. Leave empty to use bundled script."
+        },
+        "ai-relay.defaultProvider": {
+          "type": "string",
+          "default": "claude",
+          "enum": ["claude", "codex", "grok", "gemini", "ollama"],
+          "description": "Default provider to start sessions with"
+        },
+        "ai-relay.compressionLevel": {
+          "type": "string",
+          "default": "standard",
+          "enum": ["full", "standard", "minimal", "micro"],
+          "description": "Default context compression level for handoffs"
+        },
+        "ai-relay.quotas.claude": {
+          "type": "number",
+          "default": 0,
+          "description": "Daily token limit for Claude (0 = unlimited)"
+        },
+        "ai-relay.quotas.codex": {
+          "type": "number",
+          "default": 0,
+          "description": "Daily token limit for Codex (0 = unlimited)"
+        },
+        "ai-relay.quotas.grok": {
+          "type": "number",
+          "default": 0,
+          "description": "Daily token limit for Grok (0 = unlimited)"
+        },
+        "ai-relay.quotas.gemini": {
+          "type": "number",
+          "default": 0,
+          "description": "Daily token limit for Gemini (0 = unlimited)"
+        },
+        "ai-relay.quotas.ollama": {
+          "type": "number",
+          "default": 0,
+          "description": "Daily token limit for Ollama (0 = unlimited)"
+        },
+        "ai-relay.autoHandoff": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically trigger handoff when rate limit is detected"
+        },
+        "ai-relay.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for handoffs and status changes"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ai-relay",
+          "title": "AI-Relay",
+          "icon": "media/ai-relay-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ai-relay": [
+        {
+          "type": "webview",
+          "id": "ai-relay.sidebar",
+          "name": "AI-Relay"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  }
+}
