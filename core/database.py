@@ -6,7 +6,7 @@ SQLite storage for sessions, context snapshots, provider quotas, and handoff log
 import sqlite3
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, asdict
@@ -160,7 +160,7 @@ class RelayDatabase:
         session = Session(
             id=f"rel_{uuid.uuid4().hex[:12]}",
             project_path=project_path,
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
             last_provider=provider,
             total_tokens_used=0,
             status="active"
@@ -342,9 +342,9 @@ class RelayDatabase:
             row = cur.fetchone()
             if row:
                 reset_at = datetime.fromisoformat(row['reset_at'])
-                if datetime.utcnow() >= reset_at:
+                if datetime.now(timezone.utc) >= reset_at:
                     # Reset counter
-                    new_reset = (datetime.utcnow() + timedelta(days=1)).replace(
+                    new_reset = (datetime.now(timezone.utc) + timedelta(days=1)).replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ).isoformat()
                     conn.execute("""
@@ -408,7 +408,7 @@ class RelayDatabase:
                 (id, session_id, from_provider, to_provider, handoff_at, context_tokens, reason)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (log_id, session_id, from_provider, to_provider,
-                  datetime.utcnow().isoformat(), context_tokens, reason))
+                  datetime.now(timezone.utc).isoformat(), context_tokens, reason))
             conn.commit()
         finally:
             conn.close()

@@ -9,7 +9,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -26,12 +26,16 @@ from core.context import (
 from providers.base import ProviderAdapter, ProviderStatus
 from providers.claude import ClaudeAdapter
 from providers.codex import CodexAdapter
+from providers.grok import GrokAdapter
+from providers.gemini import GeminiAdapter
 
 
 # Provider registry
 PROVIDERS = {
     "claude": ClaudeAdapter,
     "codex": CodexAdapter,
+    "grok": GrokAdapter,
+    "gemini": GeminiAdapter,
 }
 
 
@@ -94,7 +98,7 @@ def cmd_status(args):
     print("\n📋 Session:\n")
     session = db.get_active_session()
     if session:
-        age = datetime.utcnow() - datetime.fromisoformat(session.created_at)
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(session.created_at)
         hours = age.total_seconds() / 3600
         print(f"  ID:       {session.id}")
         print(f"  Project:  {session.project_path}")
@@ -457,7 +461,7 @@ def cmd_sessions(args):
     print("=" * 60 + "\n")
 
     for s in sessions:
-        age = datetime.utcnow() - datetime.fromisoformat(s.created_at)
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(s.created_at)
         hours = age.total_seconds() / 3600
 
         if hours < 1:
@@ -545,7 +549,7 @@ def cmd_config(args):
             provider=args.provider,
             daily_limit=args.limit,
             used_today=0,
-            reset_at=(datetime.utcnow() + timedelta(days=1)).replace(
+            reset_at=(datetime.now(timezone.utc) + timedelta(days=1)).replace(
                 hour=0, minute=0, second=0
             ).isoformat(),
             priority=args.priority or 10,

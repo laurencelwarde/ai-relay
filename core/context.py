@@ -5,7 +5,7 @@ Context capture, compression, and formatting.
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
@@ -108,7 +108,7 @@ def compress_context(state: SessionState,
 
     lines = [
         f"# Session Context (Relayed from {state.provider})",
-        f"*Captured: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}*",
+        f"*Captured: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}*",
         "",
     ]
 
@@ -219,7 +219,7 @@ def create_snapshot(session_id: str,
         id=f"snap_{uuid.uuid4().hex[:12]}",
         session_id=session_id,
         provider=provider,
-        captured_at=datetime.utcnow().isoformat(),
+        captured_at=datetime.now(timezone.utc).isoformat(),
         full_transcript=json.dumps(state.transcript),
         compressed_summary=compressed,
         file_changes=json.dumps(state.file_changes),

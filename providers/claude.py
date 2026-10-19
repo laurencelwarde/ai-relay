@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 # PTY support is Unix-only
 if sys.platform != "win32":
@@ -150,7 +150,7 @@ class ClaudeAdapter(ProviderAdapter):
             working_directory=working_dir,
             task_state=task_state,
             metadata={
-                "captured_at": datetime.utcnow().isoformat(),
+                "captured_at": datetime.now(timezone.utc).isoformat(),
                 "cli_version": self._get_version()
             }
         )

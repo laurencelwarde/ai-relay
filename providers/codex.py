@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from providers.base import ProviderAdapter, ProviderStatus, QuotaStatus, SessionState
 
@@ -135,7 +135,7 @@ class CodexAdapter(ProviderAdapter):
             working_directory=working_dir,
             task_state=task_state,
             metadata={
-                "captured_at": datetime.utcnow().isoformat(),
+                "captured_at": datetime.now(timezone.utc).isoformat(),
                 "cli_version": self._get_version()
             }
         )
