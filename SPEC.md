@@ -8,6 +8,133 @@ AI Relay enables seamless context handoff between different LLM CLIs and subscri
 
 **Solution:** AI-Relay captures, compresses, and transfers session context between providers automatically.
 
+**Note:** AI-Relay is a standalone application. While it may borrow UI patterns from AI-Council, they are separate products with no runtime integration.
+
+---
+
+## How Handover Actually Works
+
+The key question: How does AI-Relay capture context from Claude CLI and hand off to Codex when tokens run out?
+
+### Wrapper Mode (Primary)
+
+AI-Relay wraps the target CLI, intercepting all I/O:
+
+```bash
+$ ai-relay start
+[AI-Relay] Starting session rel_abc123
+[AI-Relay] Checking providers...
+  Claude Code: 950/1000 msgs (Pro) - SELECTED
+  Codex CLI:   Available
+  Grok CLI:    480/500 msgs
+[AI-Relay] Launching Claude Code (wrapped)...
+
+# === Claude CLI starts, user works normally ===
+
+You: Help me refactor the auth system
+Claude: I'll help you refactor...
+[... 45 minutes of work ...]
+
+# === Claude returns rate limit ===
+
+Claude: Error: Rate limit exceeded. Please try again later.
+
+[AI-Relay] Rate limit detected!
+[AI-Relay] Capturing context... (12,847 tokens)
+[AI-Relay] Compressing to Standard... (4,231 tokens)
+[AI-Relay]
+[AI-Relay] Handoff options:
+[AI-Relay]   1. Codex CLI (unlimited) - RECOMMENDED
+[AI-Relay]   2. Grok CLI (20 msgs left)
+[AI-Relay]   3. Save & exit
+[AI-Relay]
+[AI-Relay] Select [1]: 1
+
+[AI-Relay] Injecting context into Codex...
+[AI-Relay] Launching Codex CLI...
+
+# === Codex starts with full context ===
+
+Codex: Continuing from your Claude session...
+       You were refactoring the auth system to JWT.
+       Last action: Created AuthContext.tsx
+       Next: Add login form component
+
+       Ready to continue. What's next?
+```
+
+**How the wrapper works:**
+1. `ai-relay start` spawns Claude CLI as a subprocess (PTY)
+2. All stdin/stdout passes through AI-Relay
+3. AI-Relay logs the full conversation in real-time
+4. When rate limit pattern detected in stdout, handoff triggers
+5. Context compressed and injected into next provider's launch
+
+### Manual Mode (Fallback)
+
+If user started Claude directly (not through wrapper):
+
+```bash
+# Terminal 1: User is in raw Claude CLI, hits rate limit
+
+# Terminal 2:
+$ ai-relay capture
+[AI-Relay] No wrapped session found.
+[AI-Relay] Options:
+[AI-Relay]   1. Paste conversation from clipboard
+[AI-Relay]   2. Import from Claude session file (~/.claude/...)
+[AI-Relay]   3. Describe context manually
+[AI-Relay] Select [1]: 2
+
+[AI-Relay] Found 3 recent Claude sessions:
+[AI-Relay]   1. auth-refactor (2 hours ago, 12K tokens)
+[AI-Relay]   2. bug-fix-login (yesterday)
+[AI-Relay]   3. new-feature (3 days ago)
+[AI-Relay] Select [1]: 1
+
+[AI-Relay] Captured session "auth-refactor" (12,847 tokens)
+[AI-Relay] Compressed to Standard (4,231 tokens)
+
+$ ai-relay handoff codex
+[AI-Relay] Launching Codex with context...
+```
+
+### Context Injection Methods
+
+How context gets into the new CLI:
+
+**Method 1: System Prompt (Codex/Grok)**
+```
+You are continuing a development session relayed from Claude Code.
+
+## Session Context
+- Working on: Auth system refactor to JWT
+- Project: /home/user/myapp
+- Key decisions: Using RS256, refresh tokens, 15min expiry
+- Last action: Created AuthContext.tsx
+- Next step: Add login form component
+
+## Recent Conversation Summary
+[User asked about JWT vs sessions, chose JWT for statelessness]
+[Created AuthContext with useContext hook]
+[Discussed token storage - chose httpOnly cookies]
+
+## Modified Files
+- src/contexts/AuthContext.tsx (new)
+- src/hooks/useAuth.ts (new)
+
+## Current Task
+Add login form component connected to /api/auth/login
+
+Continue from here.
+```
+
+**Method 2: Project File (CLAUDE.md equivalent)**
+Append to project's instruction file, which CLI reads on start.
+
+**Method 3: First Message**
+AI-Relay sends context as first user message in new session.
+
 ---
 
 ## Architecture
@@ -270,30 +397,37 @@ def select_next_provider(task_complexity: str, context_size: int) -> Provider:
 
 ---
 
-## Integration with AI Council
+## VS Code Extension (Standalone)
 
-AI-Relay can leverage AI-Council's existing infrastructure:
+AI-Relay has its own VS Code extension - separate from any other tools.
 
-1. **Shared SQLite schema** - Same database, related tables
-2. **Summarization engine** - Reuse debate consolidation for context compression
-3. **Provider adapters** - Extend CliReviewer pattern
-4. **VS Code extension** - Add ai-relay status to AI Council sidebar
-
-### AI Council Sidebar Addition
+### Sidebar UI
 
 ```
 +----------------------------------+
-| AI Council                       |
+| AI-Relay                         |
 +----------------------------------+
-| [AI-Relay Status]                   |
-|   Session: abc123 (2h active)    |
-|   Provider: Claude Code          |
-|   Context: 12.8K tokens          |
-|   [Handoff to Codex] [Compress]  |
+| Session: rel_abc123 (2h active)  |
+| Context: 12.8K tokens            |
 +----------------------------------+
-| Model Selection                  |
-| ...                              |
+| Providers              Status    |
+|   [x] Claude Code      [====--]  |
+|   [x] Codex CLI        [------]  |
+|   [ ] Grok CLI         [==----]  |
+|   [ ] Gemini           [------]  |
+|   [ ] Ollama (local)   [------]  |
++----------------------------------+
+| [Start Session] [Handoff Now]    |
+| [Compress] [Export]              |
++----------------------------------+
 ```
+
+### Features
+- Toggle providers on/off (like AI-Council's model toggles)
+- Visual quota bars per provider
+- One-click handoff
+- Context size indicator
+- Compression controls
 
 ---
 
@@ -455,6 +589,6 @@ Ready to continue. What's next?
 
 ## Summary
 
-AI Relay solves the multi-subscription problem by treating context as a portable asset that moves between providers. By building on AI Council's architecture (SQLite, provider adapters, summarization), it minimizes new code while maximizing cross-provider continuity.
+AI-Relay solves the multi-subscription problem by treating context as a portable asset that moves between providers. Using a wrapper architecture (CLI passthrough with I/O logging), SQLite persistence, and AI-powered compression, it enables seamless handoffs when any single provider's quota is exhausted.
 
 The key insight: **Context is more valuable than any single provider.**

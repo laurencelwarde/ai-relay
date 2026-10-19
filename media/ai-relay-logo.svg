@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100">
+  <defs>
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34d399;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon -->
+  <circle cx="50" cy="50" r="40" fill="url(#logoGrad)" />
+
+  <!-- Left node -->
+  <circle cx="30" cy="50" r="10" fill="#1e1b4b" stroke="#c4b5fd" stroke-width="1.5"/>
+  <text x="30" y="54" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#c4b5fd" text-anchor="middle">A</text>
+
+  <!-- Right node -->
+  <circle cx="70" cy="50" r="10" fill="#1e1b4b" stroke="#c4b5fd" stroke-width="1.5"/>
+  <text x="70" y="54" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#c4b5fd" text-anchor="middle">B</text>
+
+  <!-- Arrow -->
+  <path d="M 42 50 L 58 50" stroke="url(#arrowGrad2)" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <polygon points="58,50 52,46 52,54" fill="#34d399"/>
+
+  <!-- Context dots -->
+  <circle cx="46" cy="50" r="2" fill="#22d3ee" opacity="0.8"/>
+  <circle cx="52" cy="50" r="2" fill="#34d399" opacity="0.6"/>
+
+  <!-- Text: AI-Relay -->
+  <text x="110" y="62" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#e2e8f0">AI-Relay</text>
+
+  <!-- Tagline -->
+  <text x="110" y="82" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Cross-Provider Context Continuity</text>
+</svg>
