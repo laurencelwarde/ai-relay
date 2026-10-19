@@ -381,6 +381,36 @@ class RelayDatabase:
         finally:
             conn.close()
 
+    def update_quota(self, provider: str, **kwargs):
+        """Update specific fields of a provider quota."""
+        conn = self._get_conn()
+        try:
+            # Get current values
+            cur = conn.execute("SELECT * FROM provider_quotas WHERE provider = ?", (provider,))
+            row = cur.fetchone()
+            if not row:
+                return
+
+            # Build update query
+            updates = []
+            values = []
+            for key, value in kwargs.items():
+                if key in ('daily_limit', 'used_today', 'reset_at', 'priority', 'is_available'):
+                    updates.append(f"{key} = ?")
+                    if key == 'is_available':
+                        values.append(int(value))
+                    else:
+                        values.append(value)
+
+            if updates:
+                values.append(provider)
+                conn.execute(f"""
+                    UPDATE provider_quotas SET {', '.join(updates)} WHERE provider = ?
+                """, values)
+                conn.commit()
+        finally:
+            conn.close()
+
     def get_best_available_provider(self) -> Optional[str]:
         """Get the best available provider based on priority and quota."""
         quotas = self.list_quotas()
