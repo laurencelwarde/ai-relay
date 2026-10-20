@@ -3,7 +3,7 @@
   "displayName": "AI-Relay - Cross-Provider Context Continuity",
   "description": "Seamlessly hand off AI coding sessions between Claude, Codex, Grok, Gemini, and Ollama when quotas run out.",
   "version": "0.1.0",
-  "publisher": "laurence73",
+  "publisher": "laurencelwarde",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -28,7 +28,7 @@
   "main": "./out/extension.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/laurence73/ai-relay"
+    "url": "https://github.com/laurencelwarde/ai-relay"
   },
   "contributes": {
     "commands": [

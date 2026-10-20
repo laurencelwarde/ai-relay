@@ -170,7 +170,7 @@ A standalone VS Code extension is planned (Phase 3):
 - [ ] Team relay sessions
 - [ ] Cost tracking
 
-See [Issues](https://github.com/laurence73/ai-relay/issues) for detailed task tracking.
+See [Issues](https://github.com/laurencelwarde/ai-relay/issues) for detailed task tracking.
 
 ---
 
@@ -206,7 +206,7 @@ AI-Relay treats your conversation context as a portable asset. Providers come an
 
 ## Contributing
 
-Contributions welcome! See the [issues](https://github.com/laurence73/ai-relay/issues) for planned features.
+Contributions welcome! See the [issues](https://github.com/laurencelwarde/ai-relay/issues) for planned features.
 
 ## License
 

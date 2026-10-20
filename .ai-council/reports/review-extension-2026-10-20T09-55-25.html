@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Council Review - extension.ts</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        :root {
+            --indigo-500: #6366f1; --indigo-400: #818cf8; --purple-500: #a855f7;
+            --cyan-500: #06b6d4; --cyan-400: #22d3ee; --zinc-900: #18181b;
+            --zinc-800: #27272a; --zinc-700: #3f3f46; --zinc-600: #52525b;
+            --zinc-500: #71717a; --zinc-400: #a1a1aa; --emerald-500: #10b981;
+            --emerald-400: #34d399; --rose-500: #f43f5e; --amber-500: #f59e0b;
+            --bg-dark: #09090b; --text-primary: #fafafa; --text-secondary: #a1a1aa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-dark); color: var(--text-primary);
+            line-height: 1.7; font-size: 16px; padding: 2rem;
+        }
+        .container { max-width: 1125px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, var(--zinc-900), var(--zinc-800));
+            border: 1px solid var(--zinc-700); border-radius: 16px;
+            padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden;
+        }
+        .header::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--indigo-500), var(--purple-500), var(--cyan-500));
+        }
+        .header-content { display: flex; align-items: center; gap: 1.5rem; }
+        .header-logo { flex-shrink: 0; }
+        .header-logo img { height: 86px; width: auto; border-radius: 8px; }
+        .header-text { flex: 1; }
+        .header h1 {
+            font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--indigo-400), var(--cyan-400));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header .meta { color: var(--zinc-400); font-size: 0.875rem; }
+        .score-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem; margin-bottom: 2rem;
+        }
+        .score-card {
+            background: var(--zinc-800); border: 1px solid var(--zinc-700);
+            border-radius: 12px; padding: 1.5rem; text-align: center;
+        }
+        .score-card.gpt { border-top: 4px solid #10a37f; }
+        .score-card.grok { border-top: 4px solid #1da1f2; }
+        .score-card.gemini { border-top: 4px solid #8e44ad; }
+        .score-card.claude { border-top: 4px solid #d97706; }
+        .score-card.ollama { border-top: 4px solid #ff6b35; }
+        .score-card.consensus { border-top: 4px solid var(--indigo-500); }
+        .score-card h3 { font-size: 0.875rem; color: var(--zinc-400); margin-bottom: 0.5rem; }
+        .score-card .score { font-size: 2.5rem; font-weight: 700; }
+        .score-card .score.good { color: var(--emerald-400); }
+        .score-card .score.medium { color: var(--amber-500); }
+        .score-card .score.bad { color: var(--rose-500); }
+        .section {
+            background: var(--zinc-800); border: 1px solid var(--zinc-700);
+            border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .section h2 {
+            font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
+            padding-bottom: 0.5rem; border-bottom: 1px solid var(--zinc-700);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .issue {
+            background: var(--zinc-900); border-radius: 8px; padding: 1rem;
+            margin-bottom: 0.75rem; border-left: 4px solid var(--zinc-600);
+        }
+        .issue.critical { border-left-color: #dc2626; }
+        .issue.high { border-left-color: #ea580c; }
+        .issue.medium { border-left-color: var(--amber-500); }
+        .issue.low { border-left-color: var(--cyan-500); }
+        .issue.info { border-left-color: var(--zinc-500); }
+        .issue-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .badge {
+            display: inline-block; padding: 0.2em 0.6em; font-size: 0.7rem;
+            font-weight: 600; border-radius: 4px; text-transform: uppercase;
+        }
+        .badge.critical { background: #dc2626; color: white; }
+        .badge.high { background: #ea580c; color: white; }
+        .badge.medium { background: var(--amber-500); color: black; }
+        .badge.low { background: var(--cyan-500); color: white; }
+        .badge.info { background: var(--zinc-600); color: var(--text-secondary); }
+        .issue-line { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--zinc-400); }
+        .issue-file { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--cyan-400); margin-right: 0.5rem; }
+        .issue-desc { color: var(--text-secondary); font-size: 0.9rem; }
+        .issue-rec { color: var(--emerald-400); font-size: 0.85rem; margin-top: 0.5rem; font-style: italic; }
+        .model-tag {
+            font-size: 0.65rem; padding: 0.15em 0.4em; border-radius: 3px;
+            background: var(--zinc-700); color: var(--zinc-400);
+        }
+        .summary { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
+        .footer { text-align: center; margin-top: 2rem; color: var(--zinc-500); font-size: 0.8rem; }
+        code { font-family: 'JetBrains Mono', monospace; background: var(--zinc-900); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.85em; }
+        .usage-card {
+            background: linear-gradient(135deg, var(--zinc-800), var(--zinc-900));
+            border: 1px solid var(--zinc-700); border-radius: 12px;
+            padding: 1.25rem; margin-bottom: 2rem;
+        }
+        .usage-card h3 {
+            font-size: 0.9rem; font-weight: 600; color: var(--zinc-300);
+            margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .usage-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+        .usage-item {
+            background: var(--zinc-900); border-radius: 8px; padding: 0.75rem;
+            display: flex; flex-direction: column; gap: 0.25rem;
+        }
+        .usage-model { font-size: 0.75rem; font-weight: 600; color: var(--zinc-400); text-transform: uppercase; }
+        .usage-model.gpt { color: #10a37f; }
+        .usage-model.grok { color: #1da1f2; }
+        .usage-model.claude { color: #d97706; }
+        .usage-model.gemini { color: #8e44ad; }
+        .usage-model.ollama { color: #ff6b35; }
+        .usage-tokens { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary); }
+        .usage-cost { font-size: 0.85rem; font-weight: 600; color: var(--emerald-400); }
+        .usage-total { background: linear-gradient(135deg, var(--indigo-500), var(--purple-500)); border-radius: 8px; padding: 0.75rem; }
+        .usage-total .usage-model { color: white; }
+        .usage-total .usage-tokens { color: rgba(255,255,255,0.8); }
+        .usage-total .usage-cost { color: white; font-size: 1rem; }
+        .council-verdict {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+            border: 2px solid var(--indigo-500); border-radius: 16px;
+            padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden;
+        }
+        .council-verdict::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--indigo-500), var(--purple-500), var(--cyan-500));
+        }
+        .council-verdict h2 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--indigo-400), var(--purple-500));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .verdict-score {
+            display: flex; align-items: center; justify-content: center; gap: 2rem;
+            background: var(--zinc-900); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .verdict-score-number {
+            font-size: 4rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--emerald-400), var(--cyan-400));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .verdict-score-label { color: var(--zinc-400); font-size: 1rem; font-weight: 500; }
+        .verdict-summary { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem; font-size: 1rem; }
+        .verdict-section { margin-bottom: 1.5rem; }
+        .verdict-section h3 { font-size: 1rem; font-weight: 600; color: var(--indigo-400); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .verdict-list { list-style: none; padding: 0; }
+        .verdict-list li {
+            background: var(--zinc-900); border-radius: 8px; padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;
+            border-left: 3px solid var(--zinc-600);
+        }
+        .verdict-list li.priority { border-left-color: var(--rose-500); }
+        .verdict-list li.disputed { border-left-color: var(--amber-500); }
+        .verdict-list li.false-positive { border-left-color: var(--emerald-400); }
+        .synthesizer { font-size: 0.8rem; color: var(--zinc-500); text-align: right; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-logo">
+                    <img src="https://cdn.jsdelivr.net/gh/laurence73/assets@main/logos/ai-council-logo.png" alt="AI Council Logo" />
+                </div>
+                <div class="header-text">
+                    <h1>Review</h1>
+                    <div class="meta">
+                        <strong>extension.ts</strong> &bull; 2026-10-20 19:55:41
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="usage-card">
+            <h3>📊 Token Usage & Cost</h3>
+            <div class="usage-grid">
+
+                <div class="usage-item">
+                    <span class="usage-model gpt">GPT-4</span>
+                    <span class="usage-tokens">682 in / 298 out</span>
+                    <span class="usage-cost">$0.0158</span>
+                </div>
+
+                <div class="usage-item usage-total">
+                    <span class="usage-model">TOTAL</span>
+                    <span class="usage-tokens">682 in / 298 out</span>
+                    <span class="usage-cost">$0.0158</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="score-grid">
+
+            <div class="score-card gpt">
+                <h3>GPT-4</h3>
+                <div class="score good">7/10</div>
+                <div style="color: var(--zinc-400); font-size: 0.8rem;">3 issues</div>
+                
+            </div>
+
+            <div class="score-card consensus">
+                <h3>CONSENSUS</h3>
+                <div class="score good">7.0/10</div>
+                <div style="color: var(--zinc-400); font-size: 0.8rem;">0 agreed issues</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Consensus Issues (flagged by multiple models)</h2>
+            <p style="color: var(--zinc-400);">Not computed for this report - re-run with --synthesize to have the nominated AI seat group findings into consensus.</p>
+        </div>
+
+        <div class="section">
+            <h2>🧠 GPT-4 Review</h2>
+            <div class="summary">The code is generally well-structured and follows good practices for a VS Code extension. However, there are concerns about the potential for sidebarProvider to be undefined when commands are executed, and the logging could be more informative. The deactivate function is also minimal, which might be appropriate depending on the context but could be a missed opportunity for cleanup.</div>
+
+            <div class="issue medium">
+                <div class="issue-header">
+                    <span class="badge medium">MEDIUM</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 8</span>
+                </div>
+                <div class="issue-desc">Potential issue with sidebarProvider being undefined when commands are executed.</div>
+                <div class='issue-rec'>💡 Ensure sidebarProvider is properly initialized before commands can be executed. Consider adding a check or initializing it directly without allowing it to be undefined.</div>
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">LOW</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line None</span>
+                </div>
+                <div class="issue-desc">Logging at the start and end of activation and deactivation might not provide enough detail for debugging.</div>
+                <div class='issue-rec'>💡 Add more detailed logging, especially around key operations like command registration and sidebar initialization.</div>
+            </div>
+
+            <div class="issue info">
+                <div class="issue-header">
+                    <span class="badge info">INFO</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line None</span>
+                </div>
+                <div class="issue-desc">The deactivate function does not clean up or unregister anything.</div>
+                <div class='issue-rec'>💡 Consider adding cleanup logic in deactivate to unregister commands or dispose of resources if necessary.</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Generated by AI Council &bull; Multi-Model Code Review System<br>
+            <a href="https://github.com/laurence73/ai-council" style="color: var(--indigo-400);">github.com/laurence73/ai-council</a>
+        </div>
+    </div>
+</body>
+</html>

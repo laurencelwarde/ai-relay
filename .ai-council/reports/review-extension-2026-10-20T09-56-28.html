@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Council Review - extension.ts</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        :root {
+            --indigo-500: #6366f1; --indigo-400: #818cf8; --purple-500: #a855f7;
+            --cyan-500: #06b6d4; --cyan-400: #22d3ee; --zinc-900: #18181b;
+            --zinc-800: #27272a; --zinc-700: #3f3f46; --zinc-600: #52525b;
+            --zinc-500: #71717a; --zinc-400: #a1a1aa; --emerald-500: #10b981;
+            --emerald-400: #34d399; --rose-500: #f43f5e; --amber-500: #f59e0b;
+            --bg-dark: #09090b; --text-primary: #fafafa; --text-secondary: #a1a1aa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-dark); color: var(--text-primary);
+            line-height: 1.7; font-size: 16px; padding: 2rem;
+        }
+        .container { max-width: 1125px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, var(--zinc-900), var(--zinc-800));
+            border: 1px solid var(--zinc-700); border-radius: 16px;
+            padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden;
+        }
+        .header::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--indigo-500), var(--purple-500), var(--cyan-500));
+        }
+        .header-content { display: flex; align-items: center; gap: 1.5rem; }
+        .header-logo { flex-shrink: 0; }
+        .header-logo img { height: 86px; width: auto; border-radius: 8px; }
+        .header-text { flex: 1; }
+        .header h1 {
+            font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--indigo-400), var(--cyan-400));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header .meta { color: var(--zinc-400); font-size: 0.875rem; }
+        .score-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem; margin-bottom: 2rem;
+        }
+        .score-card {
+            background: var(--zinc-800); border: 1px solid var(--zinc-700);
+            border-radius: 12px; padding: 1.5rem; text-align: center;
+        }
+        .score-card.gpt { border-top: 4px solid #10a37f; }
+        .score-card.grok { border-top: 4px solid #1da1f2; }
+        .score-card.gemini { border-top: 4px solid #8e44ad; }
+        .score-card.claude { border-top: 4px solid #d97706; }
+        .score-card.ollama { border-top: 4px solid #ff6b35; }
+        .score-card.consensus { border-top: 4px solid var(--indigo-500); }
+        .score-card h3 { font-size: 0.875rem; color: var(--zinc-400); margin-bottom: 0.5rem; }
+        .score-card .score { font-size: 2.5rem; font-weight: 700; }
+        .score-card .score.good { color: var(--emerald-400); }
+        .score-card .score.medium { color: var(--amber-500); }
+        .score-card .score.bad { color: var(--rose-500); }
+        .section {
+            background: var(--zinc-800); border: 1px solid var(--zinc-700);
+            border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .section h2 {
+            font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
+            padding-bottom: 0.5rem; border-bottom: 1px solid var(--zinc-700);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .issue {
+            background: var(--zinc-900); border-radius: 8px; padding: 1rem;
+            margin-bottom: 0.75rem; border-left: 4px solid var(--zinc-600);
+        }
+        .issue.critical { border-left-color: #dc2626; }
+        .issue.high { border-left-color: #ea580c; }
+        .issue.medium { border-left-color: var(--amber-500); }
+        .issue.low { border-left-color: var(--cyan-500); }
+        .issue.info { border-left-color: var(--zinc-500); }
+        .issue-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .badge {
+            display: inline-block; padding: 0.2em 0.6em; font-size: 0.7rem;
+            font-weight: 600; border-radius: 4px; text-transform: uppercase;
+        }
+        .badge.critical { background: #dc2626; color: white; }
+        .badge.high { background: #ea580c; color: white; }
+        .badge.medium { background: var(--amber-500); color: black; }
+        .badge.low { background: var(--cyan-500); color: white; }
+        .badge.info { background: var(--zinc-600); color: var(--text-secondary); }
+        .issue-line { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--zinc-400); }
+        .issue-file { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--cyan-400); margin-right: 0.5rem; }
+        .issue-desc { color: var(--text-secondary); font-size: 0.9rem; }
+        .issue-rec { color: var(--emerald-400); font-size: 0.85rem; margin-top: 0.5rem; font-style: italic; }
+        .model-tag {
+            font-size: 0.65rem; padding: 0.15em 0.4em; border-radius: 3px;
+            background: var(--zinc-700); color: var(--zinc-400);
+        }
+        .summary { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
+        .footer { text-align: center; margin-top: 2rem; color: var(--zinc-500); font-size: 0.8rem; }
+        code { font-family: 'JetBrains Mono', monospace; background: var(--zinc-900); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.85em; }
+        .usage-card {
+            background: linear-gradient(135deg, var(--zinc-800), var(--zinc-900));
+            border: 1px solid var(--zinc-700); border-radius: 12px;
+            padding: 1.25rem; margin-bottom: 2rem;
+        }
+        .usage-card h3 {
+            font-size: 0.9rem; font-weight: 600; color: var(--zinc-300);
+            margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .usage-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+        .usage-item {
+            background: var(--zinc-900); border-radius: 8px; padding: 0.75rem;
+            display: flex; flex-direction: column; gap: 0.25rem;
+        }
+        .usage-model { font-size: 0.75rem; font-weight: 600; color: var(--zinc-400); text-transform: uppercase; }
+        .usage-model.gpt { color: #10a37f; }
+        .usage-model.grok { color: #1da1f2; }
+        .usage-model.claude { color: #d97706; }
+        .usage-model.gemini { color: #8e44ad; }
+        .usage-model.ollama { color: #ff6b35; }
+        .usage-tokens { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary); }
+        .usage-cost { font-size: 0.85rem; font-weight: 600; color: var(--emerald-400); }
+        .usage-total { background: linear-gradient(135deg, var(--indigo-500), var(--purple-500)); border-radius: 8px; padding: 0.75rem; }
+        .usage-total .usage-model { color: white; }
+        .usage-total .usage-tokens { color: rgba(255,255,255,0.8); }
+        .usage-total .usage-cost { color: white; font-size: 1rem; }
+        .council-verdict {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+            border: 2px solid var(--indigo-500); border-radius: 16px;
+            padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden;
+        }
+        .council-verdict::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--indigo-500), var(--purple-500), var(--cyan-500));
+        }
+        .council-verdict h2 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--indigo-400), var(--purple-500));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .verdict-score {
+            display: flex; align-items: center; justify-content: center; gap: 2rem;
+            background: var(--zinc-900); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .verdict-score-number {
+            font-size: 4rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--emerald-400), var(--cyan-400));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .verdict-score-label { color: var(--zinc-400); font-size: 1rem; font-weight: 500; }
+        .verdict-summary { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem; font-size: 1rem; }
+        .verdict-section { margin-bottom: 1.5rem; }
+        .verdict-section h3 { font-size: 1rem; font-weight: 600; color: var(--indigo-400); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .verdict-list { list-style: none; padding: 0; }
+        .verdict-list li {
+            background: var(--zinc-900); border-radius: 8px; padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;
+            border-left: 3px solid var(--zinc-600);
+        }
+        .verdict-list li.priority { border-left-color: var(--rose-500); }
+        .verdict-list li.disputed { border-left-color: var(--amber-500); }
+        .verdict-list li.false-positive { border-left-color: var(--emerald-400); }
+        .synthesizer { font-size: 0.8rem; color: var(--zinc-500); text-align: right; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-logo">
+                    <img src="https://cdn.jsdelivr.net/gh/laurence73/assets@main/logos/ai-council-logo.png" alt="AI Council Logo" />
+                </div>
+                <div class="header-text">
+                    <h1>Review</h1>
+                    <div class="meta">
+                        <strong>extension.ts</strong> &bull; 2026-10-20 19:58:23
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="usage-card">
+            <h3>📊 Token Usage & Cost</h3>
+            <div class="usage-grid">
+
+                <div class="usage-item">
+                    <span class="usage-model ollama">OLLAMA</span>
+                    <span class="usage-tokens">759 in / 3,764 out</span>
+                    <span class="usage-cost">$0.0000</span>
+                </div>
+
+                <div class="usage-item">
+                    <span class="usage-model claude">CLAUDE</span>
+                    <span class="usage-tokens">856 in / 906 out</span>
+                    <span class="usage-cost">$0.0162</span>
+                </div>
+
+                <div class="usage-item">
+                    <span class="usage-model grok">GROK</span>
+                    <span class="usage-tokens">874 in / 261 out</span>
+                    <span class="usage-cost">$0.0083</span>
+                </div>
+
+                <div class="usage-item usage-total">
+                    <span class="usage-model">TOTAL</span>
+                    <span class="usage-tokens">2,489 in / 4,931 out</span>
+                    <span class="usage-cost">$0.0244</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="score-grid">
+
+            <div class="score-card ollama">
+                <h3>OLLAMA</h3>
+                <div class="score good">8/10</div>
+                <div style="color: var(--zinc-400); font-size: 0.8rem;">2 issues</div>
+                
+            </div>
+
+            <div class="score-card claude">
+                <h3>CLAUDE</h3>
+                <div class="score medium">6/10</div>
+                <div style="color: var(--zinc-400); font-size: 0.8rem;">6 issues</div>
+                
+            </div>
+
+            <div class="score-card grok">
+                <h3>GROK</h3>
+                <div class="score good">7/10</div>
+                <div style="color: var(--zinc-400); font-size: 0.8rem;">4 issues</div>
+                
+            </div>
+
+            <div class="score-card consensus">
+                <h3>CONSENSUS</h3>
+                <div class="score good">7.0/10</div>
+                <div style="color: var(--zinc-400); font-size: 0.8rem;">4 agreed issues</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Consensus Issues (flagged by multiple models)</h2>
+
+            <div class="issue medium">
+                <div class="issue-header">
+                    <span class="badge medium">medium</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 24</span>
+                </div>
+                <div class="issue-desc">Silent failure pattern with optional chaining - commands fail without user feedback when sidebarProvider is undefined</div>
+                
+            </div>
+
+            <div class="issue medium">
+                <div class="issue-header">
+                    <span class="badge medium">medium</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 59</span>
+                </div>
+                <div class="issue-desc">Missing cleanup in deactivate() function - no disposal of sidebarProvider or its resources</div>
+                
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">low</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 7</span>
+                </div>
+                <div class="issue-desc">Console.log used instead of VS Code OutputChannel for extension logging</div>
+                
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">low</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 19</span>
+                </div>
+                <div class="issue-desc">Repetitive command registration pattern violates DRY principle</div>
+                
+            </div>
+        </div>
+
+        <div class="council-verdict">
+            <h2>⚖️ Council Verdict</h2>
+            <div class="verdict-score">
+                <div>
+                    <div class="verdict-score-number">7/10</div>
+                    <div class="verdict-score-label">Final Score</div>
+                </div>
+            </div>
+            <div class="verdict-summary">The extension demonstrates a common VS Code extension pattern but lacks production-grade error handling and user feedback mechanisms. The most critical issue is silent failures when commands are invoked - users would have no indication why commands don&#x27;t work. Adding proper error handling, initialization guards, and cleanup would elevate this from functional prototype to robust extension code.</div>
+
+            <div class="verdict-section">
+                <h3>🎯 Priority Ranking</h3>
+                <ol class="verdict-list" style="list-style: decimal; padding-left: 1.5rem;">
+                    <li class="priority">Silent command failures due to optional chaining without error handling or user feedback</li>
+                    <li class="priority">Missing error handling during sidebarProvider initialization</li>
+                    <li class="priority">No cleanup in deactivate() and sidebarProvider not added to subscriptions</li>
+                </ol>
+            </div>
+
+            <div class="verdict-section">
+                <h3>⚠️ Disputed Findings</h3>
+                <ul class="verdict-list">
+                    <li class="disputed">Whether module-level sidebarProvider variable is problematic</li>
+                </ul>
+            </div>
+
+            <div class="verdict-section">
+                <h3>✅ Likely False Positives</h3>
+                <ul class="verdict-list">
+                    <li class="false-positive">Ollama&#x27;s claim that sidebarProvider is not registered in context.subscriptions</li>
+                </ul>
+            </div>
+
+            <div class="synthesizer">Synthesized by CLAUDE</div>
+        </div>
+
+        <div class="section">
+            <h2>🦙 OLLAMA Review</h2>
+            <div class="summary">Standard, well-structured VS Code extension entry point with correct lifecycle management for webview registration and command subscriptions. No security vulnerabilities or performance bottlenecks are present. The codebase cleanly separates activation logic from implementation details in the sidePanel module. Real-world impact is limited to potential silent failures during edge-case execution and possible resource leaks if the sidebar provider holds non-trivial disposables. Minor defensive coding gaps exist but do not indicate architectural flaws or critical bugs.</div>
+
+            <div class="issue medium">
+                <div class="issue-header">
+                    <span class="badge medium">MEDIUM</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 24</span>
+                </div>
+                <div class="issue-desc">Optional chaining (?.) swallows execution errors and provides no user feedback or logging. If sidebarProvider is null/undefined when a command fires, the extension fails silently, complicating debugging and user support.</div>
+                <div class='issue-rec'>💡 Add a defensive fallback: if (!sidebarProvider) { vscode.window.showErrorMessage(&#x27;Extension failed to initialize.&#x27;); return; } Alternatively, add console.warn() for developer visibility during development.</div>
+            </div>
+
+            <div class="issue medium">
+                <div class="issue-header">
+                    <span class="badge medium">MEDIUM</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 10</span>
+                </div>
+                <div class="issue-desc">The sidebarProvider instance is created but not explicitly registered in context.subscriptions. If AIRelaySidebarProvider manages internal resources (e.g., event listeners, intervals, watchers), they will not be properly disposed when the extension deactivates, causing memory/resource leaks.</div>
+                <div class='issue-rec'>💡 Add context.subscriptions.push(sidebarProvider); after instantiation. Ensure the provider implements dispose() or extends vscode.Disposable to cleanly release held resources during deactivate().</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔮 CLAUDE Review</h2>
+            <div class="summary">This is a straightforward VS Code extension entry point with reasonable structure. Main concerns are the use of global mutable state, silent failure patterns in command handlers, and lack of error handling around initialization. Code quality could be improved by reducing repetition in command registration. No critical bugs or security vulnerabilities identified. The code is functional but could benefit from more defensive programming and better observability.</div>
+
+            <div class="issue medium">
+                <div class="issue-header">
+                    <span class="badge medium">MEDIUM</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 3</span>
+                </div>
+                <div class="issue-desc">Global mutable state using module-level variable. The &#x27;sidebarProvider&#x27; variable is declared at module scope and mutated in activate(). If activate() is called multiple times (which can happen in testing or reload scenarios), this could lead to multiple instances without proper cleanup of the previous one.</div>
+                <div class='issue-rec'>💡 Store sidebarProvider in context.subscriptions or use ExtensionContext&#x27;s globalState/workspaceState. Alternatively, ensure proper disposal of previous instance before reassignment: if (sidebarProvider) { /* cleanup */ } before creating new instance.</div>
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">LOW</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 22</span>
+                </div>
+                <div class="issue-desc">Silent failure pattern with optional chaining. If sidebarProvider is undefined (initialization failed), command executions fail silently without user feedback. Users clicking commands would see no response and no error message.</div>
+                <div class='issue-rec'>💡 Add error handling and user notification: if (!sidebarProvider) { vscode.window.showErrorMessage(&#x27;AI-Relay sidebar not initialized&#x27;); return; }</div>
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">LOW</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 59</span>
+                </div>
+                <div class="issue-desc">No cleanup in deactivate(). The deactivate() function doesn&#x27;t perform any cleanup operations. While VS Code handles subscription disposal automatically, explicit cleanup of the sidebarProvider (if it has disposable resources) would be more robust.</div>
+                <div class='issue-rec'>💡 Add cleanup logic: sidebarProvider?.dispose(); sidebarProvider = undefined; (assuming AIRelaySidebarProvider implements dispose() or has cleanup needs).</div>
+            </div>
+
+            <div class="issue info">
+                <div class="issue-header">
+                    <span class="badge info">INFO</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 19</span>
+                </div>
+                <div class="issue-desc">Repetitive command registration code violates DRY principle. Seven similar registerCommand calls with identical structure create maintenance burden.</div>
+                <div class='issue-rec'>💡 Refactor to data-driven approach: const commands = [{ id: &#x27;status&#x27;, handler: () =&gt; sidebarProvider?.runCommand(&#x27;status&#x27;) }, ...]; commands.forEach(cmd =&gt; context.subscriptions.push(vscode.commands.registerCommand(`ai-relay.${cmd.id}`, cmd.handler)));</div>
+            </div>
+
+            <div class="issue info">
+                <div class="issue-header">
+                    <span class="badge info">INFO</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 7</span>
+                </div>
+                <div class="issue-desc">Console.log used for logging instead of VS Code&#x27;s output channel. Console logs may not be visible to users debugging issues and don&#x27;t integrate with VS Code&#x27;s logging infrastructure.</div>
+                <div class='issue-rec'>💡 Create an OutputChannel: const outputChannel = vscode.window.createOutputChannel(&#x27;AI-Relay&#x27;); outputChannel.appendLine(&#x27;Extension activating...&#x27;); This provides better user visibility and debugging capability.</div>
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">LOW</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 10</span>
+                </div>
+                <div class="issue-desc">No error handling around sidebarProvider initialization. If AIRelaySidebarProvider constructor throws, the extension activation fails without graceful degradation or user notification.</div>
+                <div class='issue-rec'>💡 Wrap initialization in try-catch: try { sidebarProvider = new AIRelaySidebarProvider(...); } catch (error) { vscode.window.showErrorMessage(`AI-Relay failed to initialize: ${error}`); return; }</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>⚡ GROK Review</h2>
+            <div class="summary">Small VS Code extension activation file with minor robustness and cleanup issues but no critical bugs or security problems.</div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">LOW</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 8</span>
+                </div>
+                <div class="issue-desc">sidebarProvider is assigned once but commands use optional chaining, allowing silent failure if provider is undefined</div>
+                <div class='issue-rec'>💡 Ensure provider is always initialized or throw explicit error in commands when missing</div>
+            </div>
+
+            <div class="issue low">
+                <div class="issue-header">
+                    <span class="badge low">LOW</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 55</span>
+                </div>
+                <div class="issue-desc">deactivate() performs no cleanup or disposal of sidebarProvider or subscriptions</div>
+                <div class='issue-rec'>💡 Dispose webview provider and clear references in deactivate</div>
+            </div>
+
+            <div class="issue info">
+                <div class="issue-header">
+                    <span class="badge info">INFO</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line None</span>
+                </div>
+                <div class="issue-desc">Repetitive command registration pattern with nearly identical boilerplate</div>
+                <div class='issue-rec'>💡 Extract command registration into a helper or map to reduce duplication</div>
+            </div>
+
+            <div class="issue info">
+                <div class="issue-header">
+                    <span class="badge info">INFO</span>
+                    <span class="issue-file">extension.ts</span>
+                    <span class="issue-line">Line 5</span>
+                </div>
+                <div class="issue-desc">console.log used for lifecycle logging; extensions should prefer OutputChannel for user-visible logs</div>
+                <div class='issue-rec'>💡 Replace console.log with a dedicated vscode.OutputChannel</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Generated by AI Council &bull; Multi-Model Code Review System<br>
+            <a href="https://github.com/laurence73/ai-council" style="color: var(--indigo-400);">github.com/laurence73/ai-council</a>
+        </div>
+    </div>
+</body>
+</html>

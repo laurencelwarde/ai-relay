@@ -7,7 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('AI-Relay: Extension activating...');
 
     // Create sidebar provider
-    sidebarProvider = new AIRelaySidebarProvider(context.extensionUri);
+    sidebarProvider = new AIRelaySidebarProvider(context.extensionUri, context);
 
     // Register sidebar webview
     context.subscriptions.push(
